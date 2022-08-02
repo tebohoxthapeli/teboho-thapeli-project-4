@@ -1,0 +1,5 @@
+{
+  "yaml.schemas": {
+    "https://raw.githubusercontent.com/awslabs/goformation/master/schema/sam.schema.json": "file:///c%3A/Users/Jimmy/Documents/udacity/projects/teboho-thapeli-project-4/backend/serverless.yml"
+  }
+}

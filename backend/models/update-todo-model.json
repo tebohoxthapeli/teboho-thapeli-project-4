@@ -13,10 +13,6 @@
       "type": "boolean"
     }
   },
-  "required": [
-    "name",
-    "dueDate",
-    "done"
-  ],
+  "required": ["name", "dueDate", "done"],
   "additionalProperties": false
 }

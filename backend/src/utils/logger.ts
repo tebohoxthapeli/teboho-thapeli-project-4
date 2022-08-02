@@ -1,17 +1,23 @@
-import * as winston from 'winston'
+import * as winston from "winston";
 
-/**
- * Create a logger instance to write log messages in JSON format.
- *
- * @param loggerName - a name of a logger that will be added to all messages
- */
+type Level = "info" | "warn" | "error" | "debug";
+
 export function createLogger(loggerName: string) {
   return winston.createLogger({
-    level: 'info',
+    level: "info",
     format: winston.format.json(),
     defaultMeta: { name: loggerName },
-    transports: [
-      new winston.transports.Console()
-    ]
-  })
+    transports: [new winston.transports.Console()],
+  });
+}
+
+export function log(
+  logger: winston.Logger,
+  level: Level,
+  initialMessage: string,
+  attachedValue: any = {}
+) {
+  attachedValue = JSON.stringify(attachedValue);
+  const finalMessage = [initialMessage, attachedValue].join(" : ");
+  logger[level](finalMessage);
 }

@@ -1,21 +1,37 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
-import 'source-map-support/register'
-import * as middy from 'middy'
-import { cors } from 'middy/middlewares'
-import { CreateTodoRequest } from '../../requests/CreateTodoRequest'
-import { getUserId } from '../utils';
-import { createTodo } from '../../businessLogic/todos'
+import * as middy from "middy";
+import { cors, ICorsOptions } from "middy/middlewares";
+import "source-map-support/register";
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+
+import { CreateTodoRequest } from "../../requests/CreateTodoRequest";
+
+import {
+  createTodo,
+  generate2XXResponse,
+  generate500Response,
+  logHandlerEvent,
+} from "../../businessLogic/todos";
 
 export const handler = middy(
   async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    const newTodo: CreateTodoRequest = JSON.parse(event.body)
-    // TODO: Implement creating a new TODO item
+    const handlerName = "createTodo";
+    logHandlerEvent(handlerName, event);
 
-    return undefined
-)
+    const authorizationHeader = event.headers.Authorization;
+    const body: CreateTodoRequest = JSON.parse(event.body);
 
-handler.use(
-  cors({
-    credentials: true
-  })
-)
+    try {
+      const newTodo = await createTodo(body, authorizationHeader);
+      return generate2XXResponse(201, { item: newTodo });
+    } catch (error) {
+      return generate500Response(handlerName, error);
+    }
+  }
+);
+
+const corsOptions: ICorsOptions = {
+  credentials: true,
+  origin: "*",
+};
+
+handler.use(cors(corsOptions));
