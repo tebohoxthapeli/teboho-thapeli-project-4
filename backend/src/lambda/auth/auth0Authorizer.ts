@@ -93,10 +93,12 @@ async function getCertificate(kid: string): Promise<string> {
     if (!jsonWebKey) throw new Error(errorMessage);
 
     // raw certificate:
+
     let certificate = jsonWebKey.x5c[0];
 
     // certificate split into multiple lines, where each line of text
     // is 64 characters long:
+    
     certificate = certificate.match(/.{1,64}/g).join("\n");
 
     return ["-----BEGIN CERTIFICATE-----", certificate, "-----END CERTIFICATE-----"].join("\n");

@@ -5,6 +5,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 
 import {
   generateUploadUrl,
+  updateAttachmentUrl,
   generate2XXResponse,
   generate500Response,
   logHandlerEvent,
@@ -16,10 +17,12 @@ export const handler = middy(
     logHandlerEvent(handlerName, event);
 
     const todoId = event.pathParameters.todoId;
+    const authorizationHeader = event.headers.Authorization;
 
     try {
-      const presignedUrl = generateUploadUrl(todoId);
-      return generate2XXResponse(201, { presignedUrl: presignedUrl });
+      const uploadUrl = generateUploadUrl(todoId);
+      await updateAttachmentUrl(todoId, authorizationHeader);
+      return generate2XXResponse(201, { uploadUrl: uploadUrl });
     } catch (error) {
       return generate500Response(handlerName, error);
     }

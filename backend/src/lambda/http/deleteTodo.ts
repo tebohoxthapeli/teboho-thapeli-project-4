@@ -15,9 +15,10 @@ export const handler = middy(
     const handlerName = "deleteTodo";
     logHandlerEvent(handlerName, event);
     const todoId = event.pathParameters.todoId;
+    const authorizationHeader = event.headers.Authorization;
 
     try {
-      await deleteTodo(todoId);
+      await deleteTodo(todoId, authorizationHeader);
       return generate2XXResponse(204, {});
     } catch (error) {
       return generate500Response(handlerName, error);

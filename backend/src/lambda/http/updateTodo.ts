@@ -18,10 +18,11 @@ export const handler = middy(
     logHandlerEvent(handlerName, event);
 
     const todoId = event.pathParameters.todoId;
+    const authorizationHeader = event.headers.Authorization;
     const body: UpdateTodoRequest = JSON.parse(event.body);
 
     try {
-      await updateTodo(body, todoId);
+      await updateTodo(body, todoId, authorizationHeader);
       return generate2XXResponse(204, {});
     } catch (error) {
       return generate500Response(handlerName, error);

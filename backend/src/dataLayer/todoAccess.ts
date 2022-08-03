@@ -1,5 +1,4 @@
 import * as AWS from "aws-sdk";
-import * as S3 from "aws-sdk/clients/s3";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
 import { APIGatewayProxyResult, APIGatewayProxyEvent } from "aws-lambda";
 import { Logger } from "winston";
@@ -8,24 +7,27 @@ import { TodoItem } from "../models/TodoItem";
 import { UpdateTodoRequest } from "../requests/UpdateTodoRequest";
 import { createLogger, log } from "../utils/logger";
 
+const AWSXRay = require("aws-xray-sdk");
+const XAWS = AWSXRay.captureAWS(AWS);
+
 export class TodoAccess {
   private readonly docClient: DocumentClient;
   private readonly todosTable: string;
-  private readonly s3: S3;
+  private readonly s3: AWS.S3;
   private readonly attachmentsBucket: string;
   private readonly signedUrlExpiration: string;
   private readonly indexName: string;
   private readonly logger: Logger;
 
   constructor() {
-    this.docClient = new AWS.DynamoDB.DocumentClient();
     this.todosTable = process.env.TODOS_TABLE;
     this.attachmentsBucket = process.env.ATTACHMENTS_S3_BUCKET;
     this.signedUrlExpiration = process.env.SIGNED_URL_EXPIRATION;
     this.indexName = process.env.TODOS_CREATED_AT_INDEX;
     this.logger = createLogger("API handler logger");
 
-    this.s3 = new AWS.S3({
+    this.docClient = new XAWS.DynamoDB.DocumentClient();
+    this.s3 = new XAWS.S3({
       signatureVersion: "v4",
     });
   }
@@ -81,24 +83,28 @@ export class TodoAccess {
     }
   }
 
-  async updateTodo(updateTodoRequest: UpdateTodoRequest, todoId: string): Promise<void> {
+  async updateTodo(
+    updateTodoRequest: UpdateTodoRequest,
+    todoId: string,
+    userId: string
+  ): Promise<void> {
     try {
       const result = await this.docClient
         .update({
           TableName: this.todosTable,
           Key: {
             todoId: todoId,
+            userId: userId,
           },
-          UpdateExpression: "set name = :name, dueDate = :dueDate, done = :done",
+          UpdateExpression: "set #name = :name, dueDate = :dueDate, done = :done",
+          ExpressionAttributeNames: {
+            "#name": "name",
+          },
           ExpressionAttributeValues: {
             ":name": updateTodoRequest.name,
             ":dueDate": updateTodoRequest.dueDate,
             ":done": updateTodoRequest.done,
           },
-          // ReturnValues: "ALL_NEW",
-          // ExpressionAttributeNames: {
-          //   "#name": "name"
-          // }
         })
         .promise();
 
@@ -112,15 +118,15 @@ export class TodoAccess {
     }
   }
 
-  async deleteTodo(todoId: string): Promise<void> {
+  async deleteTodo(todoId: string, userId: string): Promise<void> {
     try {
       const result = await this.docClient
         .delete({
           TableName: this.todosTable,
           Key: {
             todoId: todoId,
+            userId: userId,
           },
-          // ReturnValues: "ALL_OLD"
         })
         .promise();
 
@@ -138,7 +144,7 @@ export class TodoAccess {
     const signedUrl = this.s3.getSignedUrl("putObject", {
       Bucket: this.attachmentsBucket,
       Key: todoId,
-      Expires: this.signedUrlExpiration,
+      Expires: Number(this.signedUrlExpiration),
     });
 
     if (signedUrl) {
@@ -151,13 +157,14 @@ export class TodoAccess {
     throw new Error(`Failed to generate signed URL for todo item with todoId: ${todoId}`);
   }
 
-  async updateAttachmentUrl(todoId: string): Promise<void> {
+  async updateAttachmentUrl(todoId: string, userId: string): Promise<void> {
     try {
       const result = await this.docClient
         .update({
           TableName: this.todosTable,
           Key: {
             todoId: todoId,
+            userId: userId,
           },
           UpdateExpression: "set attachmentUrl = :attachmentUrl",
           ExpressionAttributeValues: {

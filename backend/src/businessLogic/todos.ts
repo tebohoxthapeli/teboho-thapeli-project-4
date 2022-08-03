@@ -10,10 +10,8 @@ import { UpdateTodoRequest } from "../requests/UpdateTodoRequest";
 const todoAccess = new TodoAccess();
 
 export async function getTodos(authorizationHeader: string): Promise<TodoItem[]> {
-  const userId = getUserId(authorizationHeader);
-
   try {
-    return await todoAccess.getTodos(userId);
+    return await todoAccess.getTodos(getUserId(authorizationHeader));
   } catch (error) {
     throw new Error(error);
   }
@@ -37,9 +35,9 @@ export async function createTodo(
   }
 }
 
-export async function deleteTodo(todoId: string): Promise<void> {
+export async function deleteTodo(todoId: string, authorizationHeader: string): Promise<void> {
   try {
-    await todoAccess.deleteTodo(todoId);
+    await todoAccess.deleteTodo(todoId, getUserId(authorizationHeader));
   } catch (error) {
     throw new Error(error);
   }
@@ -47,10 +45,11 @@ export async function deleteTodo(todoId: string): Promise<void> {
 
 export async function updateTodo(
   updateTodoRequest: UpdateTodoRequest,
-  todoId: string
+  todoId: string,
+  authorizationHeader: string
 ): Promise<void> {
   try {
-    await todoAccess.updateTodo(updateTodoRequest, todoId);
+    await todoAccess.updateTodo(updateTodoRequest, todoId, getUserId(authorizationHeader));
   } catch (error) {
     throw new Error(error);
   }
@@ -58,8 +57,18 @@ export async function updateTodo(
 
 export function generateUploadUrl(todoId: string): string {
   try {
-    todoAccess.updateAttachmentUrl(todoId);
     return todoAccess.generateUploadUrl(todoId);
+  } catch (error) {
+    throw new Error(error);
+  }
+}
+
+export async function updateAttachmentUrl(
+  todoId: string,
+  authorizationHeader: string
+): Promise<void> {
+  try {
+    await todoAccess.updateAttachmentUrl(todoId, getUserId(authorizationHeader));
   } catch (error) {
     throw new Error(error);
   }
